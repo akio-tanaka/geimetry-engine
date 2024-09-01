@@ -13,3 +13,4 @@
     - `cmake -G "Visual Studio 17 2022" -B build`
     - 上記コマンドでエラーが発生せず、`build`フォルダに`geometry-engine.sln`が生成されていることを確認してください。
 2. VisualStudio2022で`geometry-engine.sln`を開く
+3. スタートアッププロジェクトを`geometry-engine`に設定し、DebugもしくはReleaseモードでビルド

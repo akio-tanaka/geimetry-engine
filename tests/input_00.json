@@ -1,0 +1,20 @@
+{
+    "model": {
+        "id": "model1",
+        "name": "Test Model",
+        "type": ".stl",
+        "subType": "binary",
+        "data": "modeldata"
+    },
+    "operation": {
+        "type": "marginline",
+        "marginline": {
+            "type": "coordinate",
+            "seed": [
+                1.0,
+                2.0,
+                3.0
+            ]
+        }
+    }
+}

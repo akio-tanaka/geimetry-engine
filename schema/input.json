@@ -1,0 +1,68 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "Input for geometry engine",
+    "description": "Input for geometry engine",
+    "type": "object",
+    "properties": {
+        "model": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "string",
+                    "description": "Model ID"
+                },
+                "name": {
+                    "type": "string",
+                    "description": "Model name"
+                },
+                "type": {
+                    "type": "string",
+                    "description": "Model format type, like '.stl'"
+                },
+                "subType": {
+                    "type": "string",
+                    "description": "Model sub type, like 'binary'"
+                },
+                "data": {
+                    "type": "string",
+                    "description": "Model data"
+                }
+            }
+        },
+        "operation": {
+            "type": "object",
+            "properties": {
+                "type": {
+                    "type": "string",
+                    "description": "Operation data type, like 'marginline'"
+                },
+                "marginline": {
+                    "type": "object",
+                    "description": "input data to generate initial margin line",
+                    "properties": {
+                        "type": {
+                            "type": "string",
+                            "description": "type of seed point, 'id' for vertex id, or 'coordinate' for coordinate"
+                        },
+                        "seed": {
+                            "oneOf": [
+                                {
+                                    "type": "number"
+                                },
+                                {
+                                    "type": "array",
+                                    "items": {
+                                        "type": "number"
+                                    },
+                                    "minItems": 3,
+                                    "maxItems": 3
+                                }
+                            ],
+                            "description": "seed point to generate margin line"
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

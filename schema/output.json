@@ -1,0 +1,39 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "Output for geometry engine",
+    "description": "Output for geometry engine",
+    "type": "object",
+    "properties": {
+        "return_code": {
+            "type": "number",
+            "description": "Return code"
+        },
+        "result": {
+            "type": "object",
+            "description": "Result data",
+            "properties": {
+                "type": {
+                    "type": "string",
+                    "description": "Operation data type, like 'marginline'"
+                },
+                "marginline": {
+                    "type": "object",
+                    "description": "output data to generate initial margin line",
+                    "properties": {
+                        "points": {
+                            "type": "array",
+                            "items": {
+                                "type": "array",
+                                "items": {
+                                    "type": "number"
+                                },
+                                "minItems": 3,
+                                "maxItems": 3
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
