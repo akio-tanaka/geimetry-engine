@@ -145,3 +145,37 @@ void CreateMarginline(
 }
 
 
+std::vector<int> DownSampleMarginline(
+	const VectorArray& V,
+	const IndicesArray& F,
+	const std::vector<std::vector<int>>& adjacency_list,
+	const CurvatureInfo& curvature_info,
+	const std::vector<int>& marginline,
+	const std::set<int>& visited,
+	size_t num_samples,
+	double threshold_to_remove_last_point)
+{
+	auto linspace = [](int start, int end, int num, bool endpoint) -> std::vector<int>
+	{
+			std::vector<int> indices;
+			auto step = static_cast<double>(end - start) / (endpoint ? num - 1 : num);
+			for (auto i = 0; i < num; ++i)
+			{
+				indices.push_back(static_cast<int>(std::round(start + i * step)));
+			}
+			return indices;
+	};
+
+
+	auto interval = floor(static_cast<double>(marginline.size()) / num_samples);
+	if (interval < 1)
+	{
+		return marginline;
+	}
+
+	auto modulus = marginline.size() % num_samples;
+	auto should_remove_last_point = modulus > threshold_to_remove_last_point;
+	auto indices = linspace(0, static_cast<int>(marginline.size()) - 1, static_cast<int>(num_samples), should_remove_last_point);
+	return indices;
+
+}

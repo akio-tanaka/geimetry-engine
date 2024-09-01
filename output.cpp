@@ -1,11 +1,23 @@
 #include "output.h"
 #include <fstream>
 #include <iostream>
+#include "return_code.h"
+
+
+void Initialize(GeometryEngineOutput& output)
+{
+    output.return_code = ToInt(ReturnCode::kSuccess);
+    output.message = "";
+    output.result.type = "";
+    output.result.marginline.num_original_points = 0;
+    output.result.marginline.num_samples = 0;
+    output.result.marginline.points.clear();
+}
 
 
 void to_json(nlohmann::json& j, const GeometryEngineOutput::Result::Marginline& ml)
 {
-	j = nlohmann::json{ {"points", ml.points} };
+    j = nlohmann::json{ {"num_original_points", ml.num_original_points}, {"num_samples", ml.num_samples}, { "points", ml.points } };
 }
 
 
@@ -17,12 +29,14 @@ void to_json(nlohmann::json& j, const GeometryEngineOutput::Result& r)
 
 void to_json(nlohmann::json& j, const GeometryEngineOutput& geo)
 {
-	j = nlohmann::json{ {"return_code", geo.return_code}, {"result", geo.result} };
+    j = nlohmann::json{ {"return_code", geo.return_code}, {"message", geo.message}, {"result", geo.result}};
 }
 
 
 void from_json(const nlohmann::json& j, GeometryEngineOutput::Result::Marginline& ml)
 {
+    j.at("num_original_points").get_to(ml.num_original_points);
+	j.at("num_samples").get_to(ml.num_samples); 
 	j.at("points").get_to(ml.points);
 }
 
@@ -37,6 +51,7 @@ void from_json(const nlohmann::json& j, GeometryEngineOutput::Result& r)
 void from_json(const nlohmann::json& j, GeometryEngineOutput& geo)
 {
 	j.at("return_code").get_to(geo.return_code);
+    j.at("message").get_to(geo.message);
 	j.at("result").get_to(geo.result);
 }
 

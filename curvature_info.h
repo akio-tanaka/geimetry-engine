@@ -18,6 +18,13 @@ struct CurvatureInfo
 
 
 /**
+* @brief Initialize curvature information
+* @param curvature_info curvature information
+*/
+void Initialize(CurvatureInfo& curvature_info);
+
+
+/**
  * @brief Calculate curvature information
  * @param V vertex array
  * @param F face array

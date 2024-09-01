@@ -5,6 +5,17 @@
 #include <igl/principal_curvature.h>
 
 
+void Initialize(CurvatureInfo& curvature_info)
+{
+	curvature_info.mean.resize(0);
+	curvature_info.gaussian.resize(0);
+	curvature_info.principal_value1.resize(0);
+	curvature_info.principal_directions1.resize(0, 3);
+	curvature_info.principal_value2.resize(0);
+	curvature_info.principal_directions2.resize(0, 3);
+}
+
+
 void CalcCurvatures(const VectorArray& V, const IndicesArray& F, CurvatureInfo& curvature_info)
 {
 	// Alternative discrete mean curvature

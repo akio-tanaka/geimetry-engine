@@ -7,6 +7,8 @@
 struct GeometryEngineOutput {
     struct Result {
         struct Marginline {
+            int num_original_points; // number of original points
+            int num_samples; // number of samples
             std::vector<std::vector<double>> points; // 3ŸŒ³À•W‚Ì”z—ñ
         };
 
@@ -15,8 +17,12 @@ struct GeometryEngineOutput {
     };
 
     int return_code;    // Return code
+    std::string message;// Message
     Result result;      // Result data
 };
+
+
+void Initialize(GeometryEngineOutput& output);
 
 
 // serialize functions

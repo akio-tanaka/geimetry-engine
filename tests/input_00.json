@@ -1,8 +1,8 @@
 {
     "model": {
         "id": "model1",
-        "name": "Test Model",
-        "type": ".stl",
+        "name": "20240701-14Ce-14",
+        "type": ".ply",
         "subType": "binary",
         "data": "modeldata"
     },
@@ -11,10 +11,12 @@
         "marginline": {
             "type": "coordinate",
             "seed": [
-                1.0,
-                2.0,
-                3.0
-            ]
+                -7.01132,
+                -2.00096,
+                0.706558
+            ],
+            "num_samples": 10,
+            "threshold_to_remove_last_point": 0.2
         }
     }
 }

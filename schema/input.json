@@ -59,6 +59,17 @@
                                 }
                             ],
                             "description": "seed point to generate margin line"
+                        },
+                        "num_samples": {
+                            "type": "integer",
+                            "description": "number of samples to generate margin line",
+                            "minimum": 3
+                        },
+                        "threshold_to_remove_last_point": {
+                            "type": "number",
+                            "description": "threshold to remove last point",
+                            "minimum": 0.0,
+                            "maximum": 1.0
                         }
                     }
                 }

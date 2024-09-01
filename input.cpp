@@ -14,12 +14,7 @@ void to_json(nlohmann::json& j, const GeometryEngineInput::Model& m)
 
 void to_json(nlohmann::json& j, const GeometryEngineInput::Operation::Marginline& ml)
 {
-    nlohmann::json seed_json;
-    std::visit([&seed_json](auto&& arg) {
-        seed_json = arg;
-        }, ml.seed);
-
-    j = nlohmann::json{ {"type", ml.type}, {"seed", seed_json} };
+    j = nlohmann::json{ {"type", ml.type}, {"seed", ml.seed}, {"num_samples", ml.num_samples}, {"threshold_to_remove_last_point", ml.threshold_to_remove_last_point} };
 }
 
 
@@ -47,13 +42,10 @@ void from_json(const nlohmann::json& j, GeometryEngineInput::Model& m)
 
 void from_json(const nlohmann::json& j, GeometryEngineInput::Operation::Marginline& ml)
 {
-    j.at("type").get_to(ml.type);
-    if (j.at("seed").is_number()) {
-        ml.seed = j.at("seed").get<double>();
-    }
-    else {
-        ml.seed = j.at("seed").get<std::vector<double>>();
-    }
+    ml.type = j.at("type").get<std::string>();
+    ml.seed = j.at("seed").get<std::vector<double>>();
+    ml.num_samples = j.at("num_samples").get<int>();
+    ml.threshold_to_remove_last_point = j.at("threshold_to_remove_last_point").get<double>();
 }
 
 

@@ -1,5 +1,6 @@
 {
     "return_code": 0,
+    "message": "Success",
     "result": {
         "type": "marginline",
         "marginline": {
