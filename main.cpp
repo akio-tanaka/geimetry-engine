@@ -1,332 +1,23 @@
-#include <algorithm>
-#include <cassert>
 #include <iostream>
 #include <filesystem>
-#include <optional>
 #include <set>
 #include <sstream>
 #include <string>
 #include <tuple>
 #include <igl/adjacency_list.h>
 #include <igl/avg_edge_length.h>
-#include <igl/cotmatrix.h>
-#include <igl/gaussian_curvature.h>
-#include <igl/invert_diag.h>
-#include <igl/massmatrix.h>
-#include <igl/parula.h>
-#include <igl/per_corner_normals.h>
-#include <igl/per_face_normals.h>
-#include <igl/per_vertex_normals.h>
-#include <igl/principal_curvature.h>
-#include <igl/ray_mesh_intersect.h>
-#include <igl/readPLY.h>
-#include <igl/readSTL.h>
 #include <igl/opengl/glfw/Viewer.h>
 #include <igl/unproject_onto_mesh.h>
-#include <nlohmann/json.hpp>
+#include "type.h"
+#include "curvature_info.h"
+#include "input.h"
+#include "output.h"
+#include "io_utils.h"
 
-
-using json = nlohmann::json;
-using ScalarArray = Eigen::VectorXd;
-using VectorArray = Eigen::MatrixXd;
-using IndicesArray = Eigen::MatrixXi;
-
-
-/**
- * @brief Curvature information
- */
-struct CurvatureInfo
-{
-	ScalarArray mean;	///< mean curvature
-	ScalarArray gaussian;	///< gaussian curvature
-	ScalarArray principal_value1;	///< principal curvature value 1
-	VectorArray principal_directions1;	///< principal curvature direction 1
-	ScalarArray principal_value2;	///< principal curvature value 2
-	VectorArray principal_directions2;	///< principal curvature direction 2
-};
-
-
-/**
- * @brief Convert CurvatureInfo to json
- * @param j json object
- * @param info curvature information
- * @return void
- */
-void to_json(json& j, const CurvatureInfo& info)
-{
-	auto convert = [](const VectorArray& vec) -> std::vector<std::vector<double>>
-	{
-		std::vector<std::vector<double>> result(vec.rows());
-		for (Eigen::Index i = 0; i < vec.rows(); i++)
-		{
-			result[i].resize(3);
-			for (Eigen::Index j = 0; j < 3; j++)
-			{
-				result[i][j] = vec(i, j);
-			}
-		}
-		return result;
-	};
-
-	j["mean"] = info.mean;
-	j["gaussian"] = info.gaussian;
-	j["principal_value1"] = info.principal_value1;
-	j["principal_value2"] = info.principal_value2;
-	j["principal_directions1"] = convert(info.principal_directions1);
-	j["principal_directions2"] = convert(info.principal_directions2);
-}
 
 /////////////////////////////////////////////////////////////////
 // Utility functions
 /////////////////////////////////////////////////////////////////
-
-/**
- * @brief Load a model file
- * @param path path to the model file
- * @param V vertices
- * @param F faces
- * @return true if the model is loaded successfully, false otherwise
- */
-bool LoadModel(const std::filesystem::path& path, VectorArray& V, IndicesArray& F)
-{
-	auto get_extension = [](const std::filesystem::path& path) -> std::string
-	{
-		auto ext = path.extension();
-		if (ext.empty())
-		{
-			return "";
-		}
-
-		auto ext_str = path.extension().string();
-		std::transform(ext_str.begin(), ext_str.end(), ext_str.begin(), [](unsigned char c) { return std::tolower(c); });
-		return ext_str;
-	};
-
-	try
-	{
-		auto extenstion = get_extension(path);
-		if (extenstion == ".ply")
-		{
-			return igl::readPLY(path.string(), V, F);
-		}
-		else if (extenstion == ".stl")
-		{
-			std::ifstream in(path.c_str());
-			Eigen::MatrixXf Vf, Nf;
-			auto status = igl::readSTL(in, Vf, F, Nf);
-			V = Vf.cast<double>();
-			return status;
-		}
-		else
-		{
-			std::cout << "unsupported file format\n";
-			return false;
-		}
-	}
-	catch (std::exception& e)
-	{
-		std::cout << "failed to read the model file\n";
-		std::cout << e.what() << "\n";
-		return false;
-	}
-}
-
-
-/**
- * @brief Calculate curvatures
- * @param V vertices
- * @param F faces
- * @param curvature_info curvature information
- * @return void
- */
-void CalcCurvatures(const VectorArray& V, const IndicesArray& F, CurvatureInfo& curvature_info)
-{
-	// Alternative discrete mean curvature
-	VectorArray HN;
-	Eigen::SparseMatrix<VectorArray::value_type> L, M, Minv;
-	igl::cotmatrix(V, F, L);
-	igl::massmatrix(V, F, igl::MASSMATRIX_TYPE_VORONOI, M);
-	igl::invert_diag(M, Minv);
-
-	// Laplace-Beltrami of position
-	HN = -Minv * (L * V);
-
-	// Extract magnitude as mean curvature
-	// Compute curvature directions via quadric fitting
-	igl::principal_curvature(V, F,
-		curvature_info.principal_directions1,
-		curvature_info.principal_directions2,
-		curvature_info.principal_value1,
-		curvature_info.principal_value2);
-	curvature_info.mean = HN.rowwise().norm();
-	curvature_info.mean = static_cast<VectorArray::value_type>(0.5) * (curvature_info.principal_value1 + curvature_info.principal_value2);
-	igl::gaussian_curvature(V, F, curvature_info.gaussian);
-}
-
-
-/**
- * @brief Save curvatures to a json file
- * @param filepath file path
- * @param info curvature information
- * @return true if the curvatures are saved successfully, false otherwise
- */
-bool SaveCurvatures(const std::filesystem::path& filepath, const CurvatureInfo& info)
-{
-	try
-	{
-		std::ofstream out(filepath.c_str());
-		json json_obj;
-		to_json(json_obj, info);
-		out << json_obj << std::endl;
-		out.close();
-		return true;
-	}
-	catch (std::exception& e)
-	{
-		std::cout << e.what() << "\n";
-		return false;
-	}
-}
-
-
-/**
- * @brief Save the model to a vtk file
- * @param filepath file path
- * @param V vertices
- * @param F faces
- * @param curvature curvature information
- * @return true if the vtk file is saved successfully, false otherwise
- */
-bool SaveVtk(
-	const std::filesystem::path& filepath,
-	const VectorArray& V,
-	const IndicesArray& F,
-	const CurvatureInfo& curvature)
-{
-	std::ofstream out(filepath.c_str());
-	if (!out)
-	{
-		return false;
-	}
-
-	out << "# vtk DataFile Version 2.0\n";
-	out << "Unstructured Grid Example\n";
-	out << "ASCII\n";
-	out << "DATASET UNSTRUCTURED_GRID\n";
-	out << "POINTS " << V.rows() << " float\n";
-	for (Eigen::Index i = 0; i < V.rows(); ++i)
-	{
-		out << V(i, 0) << " " << V(i, 1) << " " << V(i, 2) << "\n";
-	}
-
-	out << "CELLS " << F.rows() << " " << 4 * F.rows() << "\n";
-	for (Eigen::Index i = 0; i < F.rows(); ++i)
-	{
-		out << "3 " << F(i, 0) << " " << F(i, 1) << " " << F(i, 2) << "\n";
-	}
-
-	out << "CELL_TYPES " << F.rows() << "\n";
-	for (Eigen::Index i = 0; i < F.rows(); ++i)
-	{
-		out << "5\n";
-	}
-
-	out << "POINT_DATA " << V.rows() << "\n";
-	out << "SCALARS mean_curvature float 1\n";
-	out << "LOOKUP_TABLE default\n";
-	for (Eigen::Index i = 0; i < curvature.mean.rows(); ++i)
-	{
-		out << curvature.mean(i) << "\n";
-	}
-	out << "SCALARS gaussian_curvature float 1\n";
-	out << "LOOKUP_TABLE default\n";
-	for (Eigen::Index i = 0; i < curvature.gaussian.rows(); ++i)
-	{
-		out << curvature.gaussian(i) << "\n";
-	}
-	out << "SCALARS principal_curvature1 float 1\n";
-	out << "LOOKUP_TABLE default\n";
-	for (Eigen::Index i = 0; i < curvature.principal_value1.rows(); ++i)
-	{
-		out << curvature.principal_value1(i) << "\n";
-	}
-	out << "SCALARS principal_curvature2 float 1\n";
-	out << "LOOKUP_TABLE default\n";
-	for (Eigen::Index i = 0; i < curvature.principal_value2.rows(); ++i)
-	{
-		out << curvature.principal_value2(i) << "\n";
-	}
-
-	out << "VECTORS principal_curvature_directoin1 float\n";
-	for (Eigen::Index i = 0; i < curvature.principal_directions1.rows(); ++i)
-	{
-		out << curvature.principal_directions1(i, 0) << " " << curvature.principal_directions1(i, 1) << " " << curvature.principal_directions1(i, 2) << "\n";
-	}
-
-	out << "VECTORS principal_curvature_directoin2 float\n";
-	for (Eigen::Index i = 0; i < curvature.principal_directions2.rows(); ++i)
-	{
-		out << curvature.principal_directions2(i, 0) << " " << curvature.principal_directions2(i, 1) << " " << curvature.principal_directions2(i, 2) << "\n";
-	}
-
-	out.close();
-	return true;
-}
-
-
-/**
- * @brief Save a polyline to a file
- * @param filepath file path
- * @param V vertices
- * @param selected selected vertices
- * @return true if the polyline is saved successfully, false otherwise
- */
-bool SaveCsv(
-	const std::filesystem::path& filepath,
-	const VectorArray& V,
-	const std::vector<int>& selected)
-{
-	std::ofstream out(filepath.c_str());
-	if (!out)
-	{
-		return false;
-	}
-
-	for (auto& index : selected)
-	{	
-		out << V(index, 0) << "," << V(index, 1) << "," << V(index, 2) << "\n";
-	}
-
-	out.close();
-	return true;
-}
-
-
-/**
- * @brief Save a polyline to a file
- * @param filepath file path
- * @param V vertices
- * @param selected selected vertices
- * @return true if the polyline is saved successfully, false otherwise
- */
-bool SaveCsv(
-	const std::filesystem::path& filepath,
-	const VectorArray& V)
-{
-	std::ofstream out(filepath.c_str());
-	if (!out)
-	{
-		return false;
-	}
-
-	for (Eigen::Index i = 0; i < V.rows(); ++i)
-	{
-		out << V(i, 0) << "," << V(i, 1) << "," << V(i, 2) << "\n";
-	}
-
-	out.close();
-	return true;
-}
 
 
 /////////////////////////////////////////////////////////////////
@@ -696,9 +387,10 @@ int main(int argc, char *argv[])
 {
 	if (argc < 2)
 	{
-		std::cout << "Usage: " << argv[0] << " <model file path>\n";
+		std::cout << "Usage: " << argv[0] << " <input json path>\n";
 		return 1;
 	}
+
 
 	VectorArray V, N, C;
 	IndicesArray F;
