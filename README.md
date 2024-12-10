@@ -1,4 +1,4 @@
-# geimetry-engine
+# geimetry-engine (deprecated?)
 
 ## 開発
 
